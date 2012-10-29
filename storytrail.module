@@ -78,7 +78,7 @@ function storytrail_function($argumentOne, $argumentTwo) {
 }
 
 function storytrail_dev() {
-  $path = getcwd() . '\\sites\\default\\modules\\custom\\Experiment-number-one\\scenes';
+  $path = getcwd() . '/sites/default/modules/custom/Experiment-number-one/Scenes';
   $scan = scandir($path);
 
   $scene_file = !arg(1) ? 'arrival by train.txt' : arg(1);
@@ -98,7 +98,7 @@ function storytrail_dev() {
   $scene_order = array();
   // Go through each file and extract the data (text and commands).
   foreach ($files as $file) {
-    $data = file_get_contents($path . '\\' . $file);
+    $data = file_get_contents($path . '/' . $file);
     $text = stristr($data, '[', true);
     $scenes[$file]['text'] = $text;
     $datum = stristr($data, '[', false);
