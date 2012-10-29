@@ -34,12 +34,11 @@ function storytrail_menu() {
     'title' => 'Tails from the river of life.',
     //'title callback' => TRUE, // If TRUE you must declare a title argument function.
     //'title arguments' => array('title_argument_function'),
-    'description' => 'Create a story as you read tails from the river of life, a story made by you.',
+    'description' => 'Create a story as you read it, tails from the river of life, a story made by you.',
     'page callback' => 'storytrail_dev',
     'page arguments' => array(),
-    'access callback' => 'user_access',
     //'access callback' => 'access_arguments_function', // Specify your own access function.
-    'access arguments' => array('storytrail access'),
+    'access arguments' => array('access storytrail'),
     'type' => MENU_NORMAL_ITEM, // Or this could be a MENU_CALLBACK.
     //'file path' => '',
     //'file' => '',
@@ -57,7 +56,7 @@ function storytrail_permission() {
   return array(
     'access storytrail' => array(
       'title' => t('storytrail access'),
-      'description' => t('Allow users to edit storytrail'),
+      'description' => t('Allow users to read Tails from ther river of life.'),
     ),
   );
 }
@@ -93,6 +92,7 @@ function storytrail_dev() {
 
   $files = $temp;
   $scenes = array();
+  $authors = array();
   $characters = array();
   $sets = array();
   $scene_order = array();
@@ -110,6 +110,10 @@ function storytrail_dev() {
       if (count($subcommand) > 1) {
         $subcommand[1] = trim($subcommand[1]);
         $scenes[$file][$subcommand[0]][] = $subcommand[1];
+      }
+      // Create the authors list.
+      if ($subcommand[0] == 'aut') {
+        $authors[$subcommand[1]][] = $file;
       }
       // Create the characters list.
       if ($subcommand[0] == 'chr') {
@@ -130,7 +134,8 @@ function storytrail_dev() {
 $the_scene = $scenes[$scene_file];
 $character_links = '';
 foreach ($the_scene['chr'] as $character) {
-  $character_links .= "<h4>{$character}</h4>";
+  $character_title = ucwords($character);
+  $character_links .= "<h4>Follow {$character_title}</h4>";
   foreach ($characters[$character] as $file) {
     if ($file != $scene_file) {
       $character_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
@@ -140,10 +145,21 @@ foreach ($the_scene['chr'] as $character) {
 
 $set_links = '';
 foreach ($the_scene['set'] as $set) {
-  $set_links .= "<h4>{$set}</h4>";
+  $set_title = ucfirst($set);
+  $set_links .= "<h4>Watch {$set_title}</h4>";
   foreach ($sets[$set] as $file) {
     if ($file != $scene_file) {
       $set_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+    }
+  }
+}
+
+$author_links = '';
+foreach ($the_scene['aut'] as $author) {
+  $author_links .= "<h4>Read more by {$author}</h4>";
+  foreach ($authors[$author] as $file) {
+    if ($file != $scene_file) {
+      $author_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
     }
   }
 }
@@ -152,7 +168,7 @@ foreach ($the_scene['set'] as $set) {
       //drupal_set_message(print_r($datum, true));
       //drupal_set_message(print_r($commands, true));
       //drupal_set_message(print_r($scenes, true));
-      //drupal_set_message(print_r($sets, true));
+      //drupal_set_message(print_r($authors, true));
 
 
       //drupal_set_message(print_r($scene_order, true));
@@ -170,8 +186,9 @@ foreach ($the_scene['set'] as $set) {
   }
 
   $text = "<h3>{$chapter}</h3>" . $text;
-  $text .= '<hr><div style="float: left; width: 300px;"><h3>Characters</h3>' . $character_links . '</div>'
-  . '<div><h3>The Set</h3>' . $set_links . '</div>';
+  $text .= '<hr><div style="float: left; width: 300px;">' . $character_links . '</div>'
+  . '<div style="margin-left: 320px;" >' . $set_links . '</div>'
+    . '<div style="margin-left: 320px;" >' . $author_links . '</div>';
   return $text;
 
 }
