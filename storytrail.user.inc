@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * storytrail.user.inc 
+ * Generic include file to keep code organised
+ *
+ */
+
+/**
+ * dummy function
+ *
+ */   
+function storytrail_function() {
+  return ;
+}

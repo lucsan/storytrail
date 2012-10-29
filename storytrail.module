@@ -1,0 +1,492 @@
+<?php
+
+/**
+ * @file
+ * Reads Collabatorium story files and creates the story trail.
+ *
+ */
+
+
+/**
+ * a file to keep all the database call function in as a way of keeping code organized
+ */
+include_once('storytrail.data.inc');
+
+
+
+/**
+ * Implements hook_menu().
+ */
+function storytrail_menu() {
+  $items = array();
+  // Admin menu items template.
+  /*$items['admin/storytrail'] = array(
+    'title' => 'storytrail',
+    'description' => 'storytrail menu item.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storytrail_admin_form'),
+    'access arguments' => array('administer storytrail'),
+    'file' => 'storytrail.admin.inc',
+  );*/
+
+  // Normal menu item full template.
+  $items['storytrail'] = array(
+    'title' => 'Tails from the river of life.',
+    //'title callback' => TRUE, // If TRUE you must declare a title argument function.
+    //'title arguments' => array('title_argument_function'),
+    'description' => 'Create a story as you read tails from the river of life, a story made by you.',
+    'page callback' => 'storytrail_dev',
+    'page arguments' => array(),
+    'access callback' => 'user_access',
+    //'access callback' => 'access_arguments_function', // Specify your own access function.
+    'access arguments' => array('storytrail access'),
+    'type' => MENU_NORMAL_ITEM, // Or this could be a MENU_CALLBACK.
+    //'file path' => '',
+    //'file' => '',
+    //'weight' => 0,
+    //'menu_name' => '',
+  );
+
+  return $items;
+}
+
+/**
+* Implementation of hook_permission().
+*/
+function storytrail_permission() {
+  return array(
+    'access storytrail' => array(
+      'title' => t('storytrail access'),
+      'description' => t('Allow users to edit storytrail'),
+    ),
+  );
+}
+
+/**
+ * Custom function
+ *
+ * @param string $argumentOne
+ *   A menu page argument value.
+ * @param string $argumentTwo
+ *   A second menu page argument value.
+ */
+function storytrail_function($argumentOne, $argumentTwo) {
+  $msg = 'Function ' . "storytrail" . '_function($arg1, $arg2) called.<br />
+  Two arguments received, which are:- .<br />'
+  . "($argumentOne, $argumentTwo)";
+  return t($msg);
+}
+
+function storytrail_dev() {
+  $path = getcwd() . '\\sites\\default\\modules\\custom\\Experiment-number-one\\scenes';
+  $scan = scandir($path);
+
+  $scene_file = !arg(1) ? 'arrival by train.txt' : arg(1);
+
+  // Get all the story files.
+  $temp = array();
+  foreach ($scan as $filepath) {
+    if ($filepath != '.' && $filepath != '..') {
+      $temp[] = $filepath;
+    }
+  }
+
+  $files = $temp;
+  $scenes = array();
+  $characters = array();
+  $sets = array();
+  $scene_order = array();
+  // Go through each file and extract the data (text and commands).
+  foreach ($files as $file) {
+    $data = file_get_contents($path . '\\' . $file);
+    $text = stristr($data, '[', true);
+    $scenes[$file]['text'] = $text;
+    $datum = stristr($data, '[', false);
+    $commands = explode( '[', $datum);
+    foreach ($commands as $command) {
+      $command = str_replace(']', '', $command);
+      $subcommand = explode(':', $command);
+      // Add commands to the scenes array.
+      if (count($subcommand) > 1) {
+        $subcommand[1] = trim($subcommand[1]);
+        $scenes[$file][$subcommand[0]][] = $subcommand[1];
+      }
+      // Create the characters list.
+      if ($subcommand[0] == 'chr') {
+        $characters[$subcommand[1]][] = $file;
+      }
+      // Create the sets list.
+      if ($subcommand[0] == 'set') {
+        $sets[$subcommand[1]][] = $file;
+      }
+          // Create the followed by list.
+      if ($subcommand[0] == 'pre') {
+        $scene_order[$subcommand[1]][] = $file;
+      }
+    }
+  }
+
+
+$the_scene = $scenes[$scene_file];
+$character_links = '';
+foreach ($the_scene['chr'] as $character) {
+  $character_links .= "<h4>{$character}</h4>";
+  foreach ($characters[$character] as $file) {
+    if ($file != $scene_file) {
+      $character_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+    }
+  }
+}
+
+$set_links = '';
+foreach ($the_scene['set'] as $set) {
+  $set_links .= "<h4>{$set}</h4>";
+  foreach ($sets[$set] as $file) {
+    if ($file != $scene_file) {
+      $set_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+    }
+  }
+}
+
+
+      //drupal_set_message(print_r($datum, true));
+      //drupal_set_message(print_r($commands, true));
+      //drupal_set_message(print_r($scenes, true));
+      //drupal_set_message(print_r($sets, true));
+
+
+      //drupal_set_message(print_r($scene_order, true));
+
+//Aquarela Do Brasil
+  $text = '';
+  $chapter = '';
+  if (!arg(1)) {
+    $text = $scenes['arrival by train.txt']['text'];
+    $chapter = ucfirst('arrival by train');
+  }
+  else {
+    $text = $scenes[arg(1)]['text'];
+    $chapter = ucfirst(substr(arg(1), 0, strlen(arg(1)) - 4 ));
+  }
+
+  $text = "<h3>{$chapter}</h3>" . $text;
+  $text .= '<hr><div style="float: left; width: 300px;"><h3>Characters</h3>' . $character_links . '</div>'
+  . '<div><h3>The Set</h3>' . $set_links . '</div>';
+  return $text;
+
+}
+
+/**
+* Implements hook_help().
+*/
+function storytrail_help($path, $arg) {
+  if ($path == 'admin/help#storytrail') {
+    return t('A module to be storytrail.');
+  }
+}
+
+
+
+
+/**
+ * Implements hook_form().
+ */
+function storytrail_simple_form() {
+  // Form values example.
+  $form['#method'] = 'post';
+  //$form['#action'] = 'http://example.com/?q=foo/bar';
+  //$form['#attributes'] = array(
+  //'enctype' => 'multipart/form-data',
+  //'target' => 'name_of_target_frame'
+  //);
+  $form['#prefix'] = '<div class="storytrail-form-class">';
+  $form['#suffix'] = '</div>';
+
+  // Textfield example.
+  $form['storytrail']['text'] = array(
+    '#type' => 'textfield',
+    '#type' => 'submit',
+    '#type' => 'checkbox',
+    '#type' => 'radio',
+    '#type' => 'textfield',
+    '#title' => t('A textfield'),
+    '#description' => t("Textfield description goes here."),
+    '#default_value' => t('Type stuff here'),
+    //'#options' => drupal_map_assoc(array()),
+    // Warning: the onclick method used here can be annoying to users as it clears the textfield every time they click in it.
+    // note: if you want multiple attributes each needs its own array
+    '#attributes' => array(
+      array('onclick' => 'this.value="";'),
+      array('class' => 'storytrail_text-text-class'),
+      ),
+    '#field_prefix' => t('Before the element'),
+    '#field_suffix' => t('After the element'),
+    //'#required' => TRUE,
+    '#tree' => FALSE, // Flaten the form array.
+    '#access' => user_access('storytrail access'), // Restrict this element to storytrail access only
+    //'#array_parents' =>
+    '#attached' => array('js' => array(drupal_get_path('module', 'storytrail') . '/js/storytrail.js', )),
+    //'#after_build'
+  );
+
+  // Javascript select example.
+  /**
+   * This seems to me to be the most efficient way of implementing an onchange event.
+   * The onchange attribute references the form id.
+   * This method does not require a submit button, it will call the first submit button on the form.
+   * If there is no submit button on the form hook_form_submit() will not be called, but hook_form_validate() will.
+   */
+  $options = storytrail_demo_select_data_load();  // Some data is loaded for the option - function in: storytrail.data.inc .
+  $form['storytrail']['select'] = array(
+    '#type' => 'select',
+    '#title' => t('A select'),
+    '#options' => drupal_map_assoc($options), // The drupal_map_assoc will key the array.
+    '#default_value' => 'fish', // Note: this is dictated by the key of the array - use array_keys().
+    '#attributes' => array('onchange' => 'document.storytrail-form.submit();'), // Note: this must be the id of the form.
+    '#description' => t("Select something from the list."),
+  );
+
+  // Date example.
+  $form['storytrail']['date'] = array(
+    '#title' => t('Date'),
+    '#type' => 'date',
+    '#description' => t("Change the date."),
+    '#default_value' => array(
+      'month' => format_date(time(), 'custom', 'n'),
+      'day' => format_date(time(), 'custom', 'j'),
+      'year' => format_date(time(), 'custom', 'Y'),
+    ),
+  );
+
+  // File upload - note: requires $form['#attributes']['enctype'] = 'multipart/form-data'.
+  $form['storytrail']['picture_upload'] = array(
+    '#type' => 'file',
+    '#title' => t('Upload picture'),
+    '#size' => 48,
+    '#description' => t("Your virtual face or picture.")
+  );
+
+  // Checkbox example.
+  $form['storytrail']['checkbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('A checkbox'),
+    '#default_value' => 1,
+    '#description' => t("Yes or no."),
+  );
+
+  // Checkboxes example.
+  $form['storytrail']['checkboxes'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Some checkboxes'),
+    '#options' => $options,
+    '#default_value' => array(2, 4), // Note: this is dictated by the key of the array - use array_keys().
+    '#description' => t("Select things from the list."),
+  );
+
+  // Password example.
+  $form['storytrail']['pass'] = array(
+    '#type' => 'password',
+    '#title' => t('Password'),
+    '#maxlength' => 60,
+    '#size' => 15,
+  );
+
+  // Confirmed password example.
+  $form['storytrail']['account']['pass'] = array(
+    '#type' => 'password_confirm',
+    '#description' => 'To change the current user password, enter the new password in both fields.',
+    '#size' => 25,
+  );
+
+  // Secret value example - never passed to the browser, goes straight to $form_state.
+  $form['storytrail_secret']['value'] = array(
+    '#type' => 'value',
+    '#value' => t('theSecret'),
+  );
+
+  // Hidden value example.
+  $form['storytrail_hidden']['value'] = array(
+    '#type' => 'hidden',
+    '#value' => t('notSeenOnScreen'),
+  );
+
+  // Item example.
+  $form['storytrail']['item'] = array(
+    '#type' => 'item',
+    '#title' => t('Item'),
+    '#description' => t("This is an item output"),
+  );
+
+  // Image button example - note: values are retrieved from $form_state['clicked_button']['#value'].
+  $form['storytrail']['image_button'] = array(
+    '#type' => 'image_button',
+    '#src' => 'images/button.png',
+    '#value' => 'a button',
+  );
+
+  // Submit example.
+  $form['storytrail']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit', // The name on the button.
+    '#description' => t("Submit this."), // Displays nothing.
+  );
+
+  // Post render javascript used in the form.
+  $form['storytrail']['javascript'] = array(
+    '#markup' => '
+    <script>
+      // form javascript
+      function myfunction(variable){
+        var v = variable;
+      }
+    </script>
+    ',
+  );
+
+    // Add the JavaScript callback to automatically set the timezone.
+    drupal_add_js("
+// Global Killswitch.
+if (Drupal.jsEnabled) {
+  $(document).ready(function() {
+    Drupal.setDefaultTimezone();
+  });
+}", 'inline');
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate().
+ */
+function storytrail_simple_form_validate($form, &$form_state) {
+  drupal_set_message('<pre>The validate values in $form_state[values] <br>' . print_r( $form_state['values'], TRUE).'</pre>');
+  if ($form_state['values']['text'] == "") {
+    // Format - form_set_error('element', 'message').
+    form_set_error('text', 'storytrail_text Must have text');
+  }
+}
+
+/**
+ * Implements hook_form_submit().
+ */
+function storytrail_simple_form_submit($form, &$form_state) {
+  drupal_set_message('<pre>The submitted values in $form_state[\'values\'] <br>' . print_r( $form_state['values'], true) . '</pre>');
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function storytrail_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'user_login':
+    case 'user_login_block':
+      ;
+    break;
+    case 'storytrail_simple': ; break;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function storytrail_simple_form_alter(&$form, $form_state) {
+
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+* Implements hook_block_info().
+*/
+function storytrail_block_info() {
+  $blocks = array();
+  $blocks['storytrail_block'] = array(
+    'info' => t('storytrail block'),
+    'status' => TRUE,
+    'region' => 'sidebar_first',
+    'weight' => 5,
+    'visibility' => 1,
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function storytrail_block_view($block_name = '') {
+  if ($block_name == 'modmaker_block') {
+    $list = array('a', 'b', 'c');
+    $theme_args = array('items' => $list, 'type' => 'ol');
+    $content = theme('item_list', $theme_args);
+    $block = array(
+      'subject' => t('modmaker'),
+      'content' => $content,
+    );
+    return $block;
+  }
+}
+
+/**
+ * Provides admin block configuration form. Implements hook_block_configure().
+ */
+function storytrail_block_configure($delta) {
+  $form = array();
+  switch ($delta) {
+    case 'modmaker_block':
+      $form['modmaker_block_config'] = array(
+        '#type' => 'textfield',
+        '#title' => 'Configure modmaker',
+        '#description' => 'modmaker config',
+        '#default_value' => 'modmaker config value here',
+      );
+      break;
+  }
+  return $form;
+}
+
+/**
+* Implements hook_block_save().
+*/
+function storytrail_block_save($delta = '', $edit = array()) {
+  switch ($delta) {
+  case 'storytrail_block':
+    variable_set('storytrail_block_configuration', $edit['storytrail_block_config']);
+    break;
+  }
+  return;
+}
+
+
+
+
+
+/**
+* Registers the theme with the theming engine. Implements hook_theme().
+*/
+function storytrail_theme() {
+  return array(
+    'storytrail' => array(
+      //'render element' => 'form', // If is a form theme.
+      //'template' => 'storytrail', // Use template if a template is to be used, otherwise will call theme_MODULE.
+      'variables' => array('name' => NULL, 'size' => NULL ), // Placeholders for variables to send when theme_MODULE is called.
+    ),
+  );
+}
+
+function theme_storytrail($variables) {
+  // Prints out themeing information for you to develop from.
+  print '<h4>Variables available to theme_storytrail</h4>';
+  print '<pre>';
+  print_r($variables);
+  print '</pre>';
+}
+
