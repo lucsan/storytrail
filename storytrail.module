@@ -77,10 +77,11 @@ function storytrail_function($argumentOne, $argumentTwo) {
 }
 
 function storytrail_dev() {
+  $the_source = 'the source';
   $path = getcwd() . '/sites/default/modules/custom/Experiment-number-one/Scenes';
   $scan = scandir($path);
 
-  $scene_file = !arg(1) ? 'arrival by train.txt' : arg(1);
+  $scene_file = !arg(1) ? $the_source : arg(1);
 
   // Get all the story files.
   $temp = array();
@@ -99,7 +100,10 @@ function storytrail_dev() {
   // Go through each file and extract the data (text and commands).
   foreach ($files as $file) {
     $data = file_get_contents($path . '/' . $file);
+    $file = strtolower(substr($file, 0, strlen($file) - 4 ));
     $text = stristr($data, '[', true);
+    $text = trim($text);
+    $text = str_replace(array("\r\n", "\n", "\r"), "</br>", $text);
     $scenes[$file]['text'] = $text;
     $datum = stristr($data, '[', false);
     $commands = explode( '[', $datum);
@@ -108,7 +112,7 @@ function storytrail_dev() {
       $subcommand = explode(':', $command);
       // Add commands to the scenes array.
       if (count($subcommand) > 1) {
-        $subcommand[1] = trim($subcommand[1]);
+        $subcommand[1] = strtolower(trim($subcommand[1]));
         $scenes[$file][$subcommand[0]][] = $subcommand[1];
       }
       // Create the authors list.
@@ -123,22 +127,74 @@ function storytrail_dev() {
       if ($subcommand[0] == 'set') {
         $sets[$subcommand[1]][] = $file;
       }
-          // Create the followed by list.
+      // Create the followed by list.
       if ($subcommand[0] == 'pre') {
         $scene_order[$subcommand[1]][] = $file;
       }
     }
   }
 
+  // Now see how many scenes each scene preceededs [pre:].
+  $heft = array();
+  foreach ($scenes as $file => $data) {
+    //$file = substr($file, 0, strlen($file) - 4);
+    if (!isset($scene_order[$file])) {
+      $heft[$file] = 0;
+    }
+    else {
+      $heft[$file] = count($scene_order[$file]);
+    }
+  }
+  // Sort in accending order (most first).
+  arsort($heft);
+
+  // Sort each chatacters scene list into heft order.
+  foreach ($characters as $character => $files) {
+      $temp = array();
+    foreach ($files as $file) {
+      $temp[$file] = $heft[$file];
+    }
+    arsort($temp);
+    $characters[$character] = array_keys($temp);
+  }
+
+  // Sort each sets scene list into heft order.
+  foreach ($sets as $set => $files) {
+      $temp = array();
+    foreach ($files as $file) {
+      $temp[$file] = $heft[$file];
+    }
+    arsort($temp);
+    $sets[$set] = array_keys($temp);
+  }
+
+  // Sort each author scene list into heft order.
+  foreach ($authors as $author => $files) {
+      $temp = array();
+    foreach ($files as $file) {
+      $temp[$file] = $heft[$file];
+    }
+    arsort($temp);
+    $authors[$author] = array_keys($temp);
+  }
+
+
+      //drupal_set_message(print_r($heft, true));
+  array_multisort($scenes, $heft);
+
 
 $the_scene = $scenes[$scene_file];
+  //array_multisort($the_scene['chr'], $heft);
+        //drupal_set_message(print_r($the_scene, true));
+                //drupal_set_message(print_r($characters, true));
+
 $character_links = '';
 foreach ($the_scene['chr'] as $character) {
   $character_title = ucwords($character);
   $character_links .= "<h4>Follow {$character_title}</h4>";
   foreach ($characters[$character] as $file) {
     if ($file != $scene_file) {
-      $character_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+      $character_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
     }
   }
 }
@@ -149,7 +205,7 @@ foreach ($the_scene['set'] as $set) {
   $set_links .= "<h4>Watch {$set_title}</h4>";
   foreach ($sets[$set] as $file) {
     if ($file != $scene_file) {
-      $set_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+      $set_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
     }
   }
 }
@@ -159,7 +215,7 @@ foreach ($the_scene['aut'] as $author) {
   $author_links .= "<h4>Read more by {$author}</h4>";
   foreach ($authors[$author] as $file) {
     if ($file != $scene_file) {
-      $author_links .= l(substr($file, 0, strlen($file) - 4), 'storytrail/' . $file ) . '</br>';
+      $author_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
     }
   }
 }
@@ -170,19 +226,17 @@ foreach ($the_scene['aut'] as $author) {
       //drupal_set_message(print_r($scenes, true));
       //drupal_set_message(print_r($authors, true));
 
-
       //drupal_set_message(print_r($scene_order, true));
 
-//Aquarela Do Brasil
   $text = '';
   $chapter = '';
   if (!arg(1)) {
-    $text = $scenes['arrival by train.txt']['text'];
-    $chapter = ucfirst('arrival by train');
+    $text = $scenes[$the_source]['text'];
+    $chapter = ucfirst($the_source);
   }
   else {
     $text = $scenes[arg(1)]['text'];
-    $chapter = ucfirst(substr(arg(1), 0, strlen(arg(1)) - 4 ));
+    $chapter = ucfirst(arg(1));
   }
 
   $text = "<h3>{$chapter}</h3>" . $text;
