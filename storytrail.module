@@ -93,12 +93,49 @@ function storytrail_function($argumentOne, $argumentTwo) {
 }
 
 function storytrail_config() {
-  return 'xxx';
+  return drupal_get_form('storytrail_config_form');
+
 }
 
+function storytrail_config_form() {
+  global $user;
+
+
+  $url = 'https://raw.github.com/labatorium/storyriver/master/Scenes/the%20source.txt';
+  $file =file_get_contents($url);
+
+  print $file;
+
+
+
+  $form['#method'] = 'post';
+
+  $form['storytrail']['text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('A textfield'),
+    '#description' => t("Textfield description goes here."),
+    '#default_value' => t(''),
+  );
+
+  // Submit example.
+  $form['storytrail']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit', // The name on the button.
+    '#description' => t("Submit this."), // Displays nothing.
+  );
+
+    return $form;
+
+
+}
+
+
+
 function storytrail_dev() {
+  global $user;
+
   $the_source = 'the source';
-  $path = getcwd() . '/sites/default/modules/custom/Experiment-number-one/Scenes';
+  $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
   $scan = scandir($path);
 
   $scene_file = !arg(1) ? $the_source : arg(1);
@@ -275,8 +312,6 @@ function storytrail_help($path, $arg) {
     return t('A module to be storytrail.');
   }
 }
-
-
 
 
 /**
