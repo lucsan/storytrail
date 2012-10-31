@@ -44,8 +44,24 @@ function storytrail_menu() {
     //'file' => '',
     //'weight' => 0,
     //'menu_name' => '',
+  )
+  ;
+  // Normal menu item full template.
+  $items['configstorytrail'] = array(
+    'title' => 'Config Storytrail',
+    //'title callback' => TRUE, // If TRUE you must declare a title argument function.
+    //'title arguments' => array('title_argument_function'),
+    'description' => '',
+    'page callback' => 'storytrail_config',
+    'page arguments' => array(),
+    //'access callback' => 'access_arguments_function', // Specify your own access function.
+    'access arguments' => array('access storytrail'),
+    'type' => MENU_NORMAL_ITEM, // Or this could be a MENU_CALLBACK.
+    //'file path' => '',
+    //'file' => '',
+    //'weight' => 0,
+    //'menu_name' => '',
   );
-
   return $items;
 }
 
@@ -74,6 +90,10 @@ function storytrail_function($argumentOne, $argumentTwo) {
   Two arguments received, which are:- .<br />'
   . "($argumentOne, $argumentTwo)";
   return t($msg);
+}
+
+function storytrail_config() {
+  return 'xxx';
 }
 
 function storytrail_dev() {
