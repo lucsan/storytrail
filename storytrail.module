@@ -39,6 +39,7 @@ function storytrail_menu() {
     'page arguments' => array(),
     'access arguments' => array('access storytrail'),
     'type' => MENU_NORMAL_ITEM,
+    'weight' => 4,
   );
 
 
@@ -59,6 +60,7 @@ function storytrail_menu() {
     'page arguments' => array(),
     'access arguments' => array('create storytrail'),
     'type' => MENU_NORMAL_ITEM,
+    'weight' => 4,
   );
 
   $items['storytrail_edit_scene'] = array(
@@ -68,6 +70,7 @@ function storytrail_menu() {
     'page arguments' => array(),
     'access arguments' => array('create storytrail'),
     'type' => MENU_NORMAL_ITEM,
+    'weight' => 4,
   );
 
   return $items;
@@ -133,15 +136,27 @@ function storytrail_create_scene_form() {
       $meta_texts[$key] = $display;
     }
 
+  $form['storytrail']['delete'] = array(
+    '#type' => 'submit',
+    '#value' => 'Delete',
+    '#description' => t("Delete this scene from your scenes list."),
+    '#field_suffix' => t("Delete this scene from your scenes list."),
+  );
+
   }
 
   $form['#method'] = 'post';
 
-    $form['storytrail']['name'] = array(
+  $form['storytrail']['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Scene Title'),
     '#description' => t(""),
     '#default_value' => t(ucfirst($scene)),
+  );
+
+  $form['storytrail']['old_name'] = array(
+    '#type' => 'hidden',
+    '#value' => t(ucfirst($scene)),
   );
 
   $form['storytrail']['aut'] = array(
@@ -187,7 +202,6 @@ function storytrail_create_scene_form() {
   );
 
 
-  // Submit example.
   $form['storytrail']['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit', // The name on the button.
@@ -201,10 +215,18 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
   global $user;
   $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
   $values = $form_state['values'];
-  //drupal_set_message(print_r($values, true));
-
   $text = $values['text'];
-    $file_name = strtolower($values['name']) . '.txt';
+  $file_name = strtolower($values['name']) . '.txt';
+  $old_file_name = strtolower($values['old_name']) . '.txt';
+
+  if ($values['op'] == 'Delete') {
+    unlink($path . '/' . $file_name);
+    drupal_set_message("'File Deleted' {$user->name} your scene <i>'{$values['name']}'</i> has been removed from your scene list.");
+    $form_state['redirect'] = array("storytrail_scene/");
+    return;
+  }
+
+
 
   $meta_data['aut'] = $values['aut'];
   $meta_data['edt'] = $values['edt'];
@@ -222,17 +244,20 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
     }
   }
 
-
-
   $file_data = $text . "\n" . $meta_text;
 
   $handle = fopen($path . '/' . $file_name, 'w');
   fwrite($handle, $file_data);
   fclose($handle);
+  $act = 'New';
+  if ($old_file_name != ''){ $act = 'Updated'; }
+  if ($old_file_name != $file_name){ $act = 'Renamed'; }
+  drupal_set_message("{$act}: '{$user->name}' your scene <i>'{$values['name']}'</i> has been writen to your scene stack.");
 
-  drupal_set_message("{$user->name} your scene {$values['name']} has been writen to your scene stack.");
-
-
+  if ($file_name != $old_file_name) {
+    unlink($path . '/' . $old_file_name);
+    $form_state['redirect'] = array("storytrail_scene/{$file_name}");
+  }
 }
 
 
