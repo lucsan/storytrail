@@ -266,8 +266,9 @@ function storytrail_edit_scene() {
 }
 
 function storytrail_edit_scene_form() {
+  global $user;
   $form['#method'] = 'post';
-  $user_scenes = storytrail_get_user_trail();
+  $user_scenes = storytrail_scandir(getcwd() . '/git/' . $user->name . '/storyriver/Scenes');
   $options = array();
   foreach ($user_scenes as $file_name) {
     $title = ucfirst(stristr($file_name, '.', true));
@@ -367,33 +368,17 @@ function storytrail_check_user_story_folder() {
   }
 
 }
-function storytrail_get_user_trail($path = NULL) {
-  global $user;
-
-  if (!$path) {
-    $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
-  }
-  $scan = scandir($path);
-
-  // Get all the story files.
-  $temp = array();
-  foreach ($scan as $filepath) {
-    if ($filepath != '.' && $filepath != '..') {
-      $temp[] = $filepath;
-    }
-  }
-  return $temp;
-}
 
 function storytrail_scandir($path) {
+  if (!is_dir($path)) return array();
   $scan = scandir($path);
-  $filepathpaths = array();
+  $filepaths = array();
   foreach ($scan as $filepath) {
     if ($filepath != '.' && $filepath != '..') {
-      $filepathpaths[] = $filepath;
+      $filepaths[] = $filepath;
     }
   }
-  return $filepathpaths;
+  return $filepaths;
 }
 
 function storytrail_display() {
