@@ -29,39 +29,47 @@ function storytrail_menu() {
     'file' => 'storytrail.admin.inc',
   );*/
 
-  // Normal menu item full template.
-  $items['storytrail'] = array(
-    'title' => 'Tails from the river of life.',
-    //'title callback' => TRUE, // If TRUE you must declare a title argument function.
-    //'title arguments' => array('title_argument_function'),
+
+  $items['storytrail_display'] = array(
+    'title' => 'Read - Tails from the river of life.',
+    //'title callback' => 'storytrail_title_change', // If TRUE you must declare a title argument function.
+    //'title arguments' => array(),
     'description' => 'Create a story as you read it, tails from the river of life, a story made by you.',
-    'page callback' => 'storytrail_dev',
+    'page callback' => 'storytrail_display',
     'page arguments' => array(),
-    //'access callback' => 'access_arguments_function', // Specify your own access function.
     'access arguments' => array('access storytrail'),
-    'type' => MENU_NORMAL_ITEM, // Or this could be a MENU_CALLBACK.
-    //'file path' => '',
-    //'file' => '',
-    //'weight' => 0,
-    //'menu_name' => '',
-  )
-  ;
-  // Normal menu item full template.
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+
   $items['configstorytrail'] = array(
     'title' => 'Config Storytrail',
-    //'title callback' => TRUE, // If TRUE you must declare a title argument function.
-    //'title arguments' => array('title_argument_function'),
     'description' => '',
     'page callback' => 'storytrail_config',
     'page arguments' => array(),
-    //'access callback' => 'access_arguments_function', // Specify your own access function.
     'access arguments' => array('administer storytrail'),
-    'type' => MENU_NORMAL_ITEM, // Or this could be a MENU_CALLBACK.
-    //'file path' => '',
-    //'file' => '',
-    //'weight' => 0,
-    //'menu_name' => '',
+    'type' => MENU_NORMAL_ITEM,
+
   );
+
+  $items['storytrail_scene'] = array(
+    'title' => 'Create - a scene for the story river',
+    'description' => '',
+    'page callback' => 'storytrail_create_scene',
+    'page arguments' => array(),
+    'access arguments' => array('create storytrail'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['storytrail_edit_scene'] = array(
+    'title' => 'Edit - a scene from the story river',
+    'description' => '',
+    'page callback' => 'storytrail_edit_scene',
+    'page arguments' => array(),
+    'access arguments' => array('create storytrail'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   return $items;
 }
 
@@ -74,6 +82,10 @@ function storytrail_permission() {
       'title' => t('storytrail access'),
       'description' => t('Allow users to read Tails from ther river of life.'),
     ),
+    'create storytrail' => array(
+      'title' => t('storytrail edit / create'),
+      'description' => t('Allow users to create and edit scenes.'),
+    ),
     'administer storytrail' => array(
       'title' => t('storytrail administration'),
       'description' => t(''),
@@ -81,20 +93,192 @@ function storytrail_permission() {
   );
 }
 
-/**
- * Custom function
- *
- * @param string $argumentOne
- *   A menu page argument value.
- * @param string $argumentTwo
- *   A second menu page argument value.
- */
-function storytrail_function($argumentOne, $argumentTwo) {
-  $msg = 'Function ' . "storytrail" . '_function($arg1, $arg2) called.<br />
-  Two arguments received, which are:- .<br />'
-  . "($argumentOne, $argumentTwo)";
-  return t($msg);
+$story_title = '';
+function storytrail_title_change() {
+  global $story_title;
+  return "Tails from the river of life.";
 }
+
+function storytrail_create_scene() {
+  storytrail_check_user_story_folder();
+  return drupal_get_form('storytrail_create_scene_form');
+}
+
+function storytrail_create_scene_form() {
+  global $user;
+  $text = '';
+  $scene = '';
+  $meta_texts = array('aut' => '', 'edt' =>'', 'chr' => '', 'set' => '', 'pre' => '');
+  $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+  if ($file_name = arg(1)) {
+    $file = file_get_contents($path . '/' . $file_name);
+    $scene = strtolower(stristr($file_name, '.', true));
+    $text = stristr($file, '[', true);
+    $text = trim($text);
+    $meta_data = stristr($file, '[', false);
+    $meta_list = explode('[', $meta_data);
+    $meta_data = array();
+    foreach ($meta_list as $listing) {
+      if ($listing == "") continue;
+      $listing = explode(':', $listing);
+      $listing[1] = str_replace("]", "", $listing[1]);
+      $meta_data[$listing[0]][] = $listing[1];
+    }
+
+    foreach ($meta_data as $key => $lists) {
+      $display = '';
+      foreach ($lists as $item) {
+        $display .= $item . '; ';
+      }
+      $meta_texts[$key] = $display;
+    }
+
+  }
+
+  $form['#method'] = 'post';
+
+    $form['storytrail']['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Scene Title'),
+    '#description' => t(""),
+    '#default_value' => t(ucfirst($scene)),
+  );
+
+  $form['storytrail']['aut'] = array(
+    '#type' => 'textfield',
+    '#title' => t("Author's name(s)"),
+    '#description' => t("Colon separated list of Authors (eg: Barry Wong; lucsan)"),
+    '#default_value' => t($meta_texts['aut']),
+  );
+
+  $form['storytrail']['edt'] = array(
+    '#type' => 'textfield',
+    '#title' => t("Editor / proofer's name(s)"),
+    '#description' => t("Colon separated list of Editors (eg: Barry Wong; lucsan)"),
+    '#default_value' => t($meta_texts['edt']),
+  );
+
+  $form['storytrail']['text'] = array(
+    '#type' => 'textarea',
+    '#title' => t('The Scene'),
+    '#description' => t(""),
+    '#default_value' => t($text),
+  );
+
+  $form['storytrail']['chr'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Characters names'),
+    '#description' => t("Colon separated list of Existing and new characters and props who appear in this scene (eg: The dark man; Mr smith; walther pp36 pistol)"),
+    '#default_value' => t($meta_texts['chr']),
+  );
+
+  $form['storytrail']['set'] = array(
+    '#type' => 'textfield',
+    '#title' => t('The Setting'),
+    '#description' => t("Colon separated list of Settings (eg: Brighton station; Brighton station platform 2). This should be a list of existing settings."),
+    '#default_value' => t($meta_texts['set']),
+  );
+
+  $form['storytrail']['pre'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Scenes which should preceed this scene. This should be a list of existing settings.'),
+    '#description' => t(""),
+    '#default_value' => t($meta_texts['pre']),
+  );
+
+
+  // Submit example.
+  $form['storytrail']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit', // The name on the button.
+    '#description' => t("Submit this."), // Displays nothing.
+  );
+
+    return $form;
+}
+
+function storytrail_create_scene_form_submit($form, &$form_state) {
+  global $user;
+  $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+  $values = $form_state['values'];
+  //drupal_set_message(print_r($values, true));
+
+  $text = $values['text'];
+    $file_name = strtolower($values['name']) . '.txt';
+
+  $meta_data['aut'] = $values['aut'];
+  $meta_data['edt'] = $values['edt'];
+  $meta_data['chr'] = $values['chr'];
+  $meta_data['set'] = $values['set'];
+  $meta_data['pre'] = $values['pre'];
+
+  $meta_text = '';
+  foreach ($meta_data as $key => $list) {
+    $items = explode(';', $list);
+    foreach ($items as $item) {
+      $item = trim($item);
+      if ($item == '') continue;
+      $meta_text .= "[{$key}:{$item}]\n";
+    }
+  }
+
+
+
+  $file_data = $text . "\n" . $meta_text;
+
+  $handle = fopen($path . '/' . $file_name, 'w');
+  fwrite($handle, $file_data);
+  fclose($handle);
+
+  drupal_set_message("{$user->name} your scene {$values['name']} has been writen to your scene stack.");
+
+
+}
+
+
+function storytrail_edit_scene() {
+  return drupal_get_form('storytrail_edit_scene_form');
+}
+
+function storytrail_edit_scene_form() {
+  $form['#method'] = 'post';
+  $user_scenes = storytrail_get_user_trail();
+  $options = array();
+  foreach ($user_scenes as $file_name) {
+    $title = ucfirst(stristr($file_name, '.', true));
+    $options[$file_name] = $title;
+  }
+  //print_r($user_scenes);
+
+
+    $form['storytrail']['select'] = array(
+    '#type' => 'select',
+    '#title' => t('Select the scene you wish to edit.'),
+    '#options' => $options, // The drupal_map_assoc will key the array.
+    '#description' => t("This is a list of scenes you own."),
+  );
+
+
+
+  // Submit example.
+  $form['storytrail']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit', // The name on the button.
+    '#description' => t("Submit this."), // Displays nothing.
+  );
+
+    return $form;
+}
+
+function storytrail_edit_scene_form_submit($form, &$form_state) {
+
+  $file = $form_state['values']['select'];
+  drupal_set_message(print_r($form_state['values']['select'],true));
+
+  $form_state['redirect'] = array("storytrail_scene/{$file}");
+}
+
+
 
 function storytrail_config() {
   return drupal_get_form('storytrail_config_form');
@@ -104,34 +288,27 @@ function storytrail_config() {
 function storytrail_config_form() {
   global $user;
 
-    //$result = shell_exec("C:\msys\1.0\bin\bash.exe --login && cd git/admin/storyriver && ls");//; cd git/admin/storyriver; dir");
+  $pass = sha1('password');
+  $usr = sha1('lucsan');
+  $passusr = sha1($pass . $usr);
+  print "pass: password " . $pass;
+  print "User: lucsan " . $usr;
+  print "passusr " . $passusr;
+  print "passusr md5 " . md5($passusr);
+  print "<br>";
+
 //C:\Windows\SysWOW64\cmd.exe /c ""C:\Program Files (x86)\Git\bin\sh.exe" --login -i"
-    $result = shell_exec("C:\Program Files (x86)\Git\bin\sh.exe --login -i 'ls'");
+
+  //chdir('sites');
   print '<pre>';
-  print_r( $result);
-print '</pre>';
-  $result = shell_exec("cd git/admin/storyriver && dir");
-
-  print '<pre>';
-  print_r( $result);
-print '</pre>';
-
-  /*$url = 'https://raw.github.com/labatorium/storyriver/master/Scenes/the%20source.txt';
-
-  $file =file_get_contents($url);
-
-  print $file;*/
-
-  //$url = 'https://api.github.com/repos/labatorium/storyriver/contents/Scenes';
-  //$url = 'https://github.com/labatorium/storyriver/blob/master/Scenes/a%20coffee%20and%20an%20encounter.txt';
-  //$url = 'https://github.com/labatorium/storyriver/blob/master/Scenes/the%20source.txt';
-
-  //$file = json_decode(file_get_contents($url), true);
-  //$file = get_content_from_github($url);
-
-//print '<pre>';
-//  print_r( $file);
-//print '</pre>';
+  //print shell_exec("dir");
+  //print shell_exec("cd C:\Program Files (x86)\Git\bin\ && dir");
+  //print shell_exec("C:\Windows\SysWOW64\cmd.exe /c C:\progfx86\Git\bin\sh.exe --login -i 2>&1");
+  //print shell_exec("C:\Program Files (x86)\Git\bin\sh.exe 2>&1");
+  //print shell_exec("git status 2>&1");
+  //print shell_exec("'C:\Program Files (x86)\Git\bin\sh.exe --login -i' 2>&1");
+  //print shell_exec("'C:\Program Files (x86)\Git\bin\sh.exe' --login -i 2>&1");
+  print '</pre>';
 
 
   $form['#method'] = 'post';
@@ -155,32 +332,23 @@ print '</pre>';
 
 }
 
-/* gets url */
-function get_content_from_github($url) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL,$url);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-    //curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-    //curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+function storytrail_check_user_story_folder() {
+  global $user;
+  $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+  if (!is_dir($path)) {
+    mkdir(getcwd() . '/git/' . $user->name);
+    mkdir(getcwd() . '/git/' . $user->name . '/storyriver');
+    mkdir(getcwd() . '/git/' . $user->name . '/storyriver/Scenes');
+  }
 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT,1);
-    //curl_setopt($ch, CURLOPT_USERPWD, "USERNAME:PASSWORD");
-    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    $content = curl_exec($ch);
-    curl_close($ch);
-    return $content;
 }
-
-
-function storytrail_dev() {
+function storytrail_get_user_trail($path = NULL) {
   global $user;
 
-  $the_source = 'the source';
-  $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+  if (!$path) {
+    $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+  }
   $scan = scandir($path);
-
-  $scene_file = !arg(1) ? $the_source : arg(1);
 
   // Get all the story files.
   $temp = array();
@@ -189,21 +357,90 @@ function storytrail_dev() {
       $temp[] = $filepath;
     }
   }
+  return $temp;
+}
 
-  $files = $temp;
+function storytrail_scandir($path) {
+  $scan = scandir($path);
+  $filepathpaths = array();
+  foreach ($scan as $filepath) {
+    if ($filepath != '.' && $filepath != '..') {
+      $filepathpaths[] = $filepath;
+    }
+  }
+  return $filepathpaths;
+}
+
+function storytrail_display() {
+  global $user;
+  $master_path = getcwd() . '/git/admin/storyriver/Scenes';
+  $master_filepaths = array_flip(storytrail_scandir($master_path));
+  $user_filepaths = array();
+  $all_filepaths = array();
+
+  if ($user->uid != 0) {
+    $user_path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+    $user_filepaths = array_flip(storytrail_scandir($user_path));
+  }
+  else { //uid == 0
+
+    $user->name = 'collective';
+  }
+
+    foreach ($master_filepaths as $mpath => $key) {
+      if (!isset($user_filepaths[$mpath])) {
+        $all_filepaths[$mpath]['file'] = $master_path . '/' . $mpath;
+        $all_filepaths[$mpath]['source'] = 'public work';
+        $all_filepaths[$mpath]['has_version'] = FALSE;
+      }
+      else{
+        $all_filepaths[$mpath]['file'] = $user_path . '/' . $mpath;
+        $all_filepaths[$mpath]['source'] = 'your version';
+        $all_filepaths[$mpath]['has_version'] = true;
+        $user_filepaths[$mpath] = NULL;
+      }
+    }
+
+    foreach ($user_filepaths as $upath => $key) {
+      $all_filepaths[$upath]['file'] = $user_path . '/' . $upath;
+      $all_filepaths[$upath]['source'] = 'your version';
+      $all_filepaths[$upath]['has_version'] = true;
+    }
+
+
+  //print '<pre>';
+  //print_r($all_filepaths);
+  ///print '</pre>';
+  $text = storytrail_stitch($user, $all_filepaths);
+  return $text;
+}
+
+function storytrail_stitch($user, $filepaths) {
+  global $story_title;
+
+  $viewing = $user->name;
+  $the_source = 'the source';
+  $scene_file = !arg(1) ? $the_source : arg(1);
+
   $scenes = array();
   $authors = array();
   $characters = array();
   $sets = array();
   $scene_order = array();
+
   // Go through each file and extract the data (text and commands).
-  foreach ($files as $file) {
-    $data = file_get_contents($path . '/' . $file);
-    $file = strtolower(substr($file, 0, strlen($file) - 4 ));
+  foreach ($filepaths as $filename => $filedata) {
+    $filetitle = strtolower(stristr($filename, '.', true));
+    $data = file_get_contents($filedata['file']);
+
     $text = stristr($data, '[', true);
     $text = trim($text);
     $text = str_replace(array("\r\n", "\n", "\r"), "</br>", $text);
-    $scenes[$file]['text'] = $text;
+    $scenes[$filetitle]['text'] = $text;
+    $scenes[$filetitle]['source'] = $filedata['source'];
+    $scenes[$filetitle]['filename'] = $filename;
+    $scenes[$filetitle]['has_version'] = $filedata['has_version'];
+
     $datum = stristr($data, '[', false);
     $commands = explode( '[', $datum);
     foreach ($commands as $command) {
@@ -212,46 +449,46 @@ function storytrail_dev() {
       // Add commands to the scenes array.
       if (count($subcommand) > 1) {
         $subcommand[1] = strtolower(trim($subcommand[1]));
-        $scenes[$file][$subcommand[0]][] = $subcommand[1];
+        $scenes[$filetitle][$subcommand[0]][] = $subcommand[1];
       }
       // Create the authors list.
       if ($subcommand[0] == 'aut') {
-        $authors[$subcommand[1]][] = $file;
+        $authors[$subcommand[1]][] = $filetitle;
       }
       // Create the characters list.
       if ($subcommand[0] == 'chr') {
-        $characters[$subcommand[1]][] = $file;
+        $characters[$subcommand[1]][] = $filetitle;
       }
       // Create the sets list.
       if ($subcommand[0] == 'set') {
-        $sets[$subcommand[1]][] = $file;
+        $sets[$subcommand[1]][] = $filetitle;
       }
       // Create the followed by list.
       if ($subcommand[0] == 'pre') {
-        $scene_order[$subcommand[1]][] = $file;
+        $scene_order[$subcommand[1]][] = $filetitle;
       }
     }
   }
 
   // Now see how many scenes each scene preceededs [pre:].
   $heft = array();
-  foreach ($scenes as $file => $data) {
+  foreach ($scenes as $filetitle => $data) {
     //$file = substr($file, 0, strlen($file) - 4);
-    if (!isset($scene_order[$file])) {
-      $heft[$file] = 0;
+    if (!isset($scene_order[$filetitle])) {
+      $heft[$filetitle] = 0;
     }
     else {
-      $heft[$file] = count($scene_order[$file]);
+      $heft[$filetitle] = count($scene_order[$filetitle]);
     }
   }
   // Sort in accending order (most first).
   arsort($heft);
 
   // Sort each chatacters scene list into heft order.
-  foreach ($characters as $character => $files) {
+  foreach ($characters as $character => $filenames) {
       $temp = array();
-    foreach ($files as $file) {
-      $temp[$file] = $heft[$file];
+    foreach ($filenames as $filename) {
+      $temp[$filename] = $heft[$filename];
     }
     arsort($temp);
     $characters[$character] = array_keys($temp);
@@ -277,68 +514,50 @@ function storytrail_dev() {
     $authors[$author] = array_keys($temp);
   }
 
-
-      //drupal_set_message(print_r($heft, true));
   array_multisort($scenes, $heft);
+  $the_scene = $scenes[$scene_file];
 
-
-$the_scene = $scenes[$scene_file];
-  //array_multisort($the_scene['chr'], $heft);
-        //drupal_set_message(print_r($the_scene, true));
-                //drupal_set_message(print_r($characters, true));
-
-$character_links = '';
-foreach ($the_scene['chr'] as $character) {
-  $character_title = ucwords($character);
-  $character_links .= "<h4>Follow {$character_title}</h4>";
-  foreach ($characters[$character] as $file) {
-    if ($file != $scene_file) {
-      $character_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
+  $character_links = '';
+  foreach ($the_scene['chr'] as $character) {
+    $character_title = ucwords($character);
+    $character_links .= "<h4>Follow {$character_title}</h4>";
+    foreach ($characters[$character] as $file) {
+      if ($file != $scene_file) {
+        $character_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+      }
     }
   }
-}
 
-$set_links = '';
-foreach ($the_scene['set'] as $set) {
-  $set_title = ucfirst($set);
-  $set_links .= "<h4>Watch {$set_title}</h4>";
-  foreach ($sets[$set] as $file) {
-    if ($file != $scene_file) {
-      $set_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
+  $set_links = '';
+  foreach ($the_scene['set'] as $set) {
+    $set_title = ucfirst($set);
+    $set_links .= "<h4>Watch {$set_title}</h4>";
+    foreach ($sets[$set] as $file) {
+      if ($file != $scene_file) {
+        $set_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+      }
     }
   }
-}
 
-$author_links = '';
-foreach ($the_scene['aut'] as $author) {
-  $author_links .= "<h4>Read more by {$author}</h4>";
-  foreach ($authors[$author] as $file) {
-    if ($file != $scene_file) {
-      $author_links .= l(ucfirst($file), 'storytrail/' . $file ) . '</br>';
+  $author_links = '';
+  foreach ($the_scene['aut'] as $author) {
+    $author_links .= "<h4>Read more by {$author}</h4>";
+    foreach ($authors[$author] as $file) {
+      if ($file != $scene_file) {
+        $author_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+      }
     }
   }
-}
 
+  $text = $the_scene['text'];
+  $chapter = ucfirst($scene_file);
+    $story_title = $chapter;
+  $creator = $the_scene['source'];
+  $filename = $the_scene['filename'];
+  $editlink = '';
+  if ($the_scene['has_version']) $editlink = "<a href=\"../storytrail_scene/{$filename}\" >Edit</a>";
 
-      //drupal_set_message(print_r($datum, true));
-      //drupal_set_message(print_r($commands, true));
-      //drupal_set_message(print_r($scenes, true));
-      //drupal_set_message(print_r($authors, true));
-
-      //drupal_set_message(print_r($scene_order, true));
-
-  $text = '';
-  $chapter = '';
-  if (!arg(1)) {
-    $text = $scenes[$the_source]['text'];
-    $chapter = ucfirst($the_source);
-  }
-  else {
-    $text = $scenes[arg(1)]['text'];
-    $chapter = ucfirst(arg(1));
-  }
-
-  $text = "<h3>{$chapter}</h3>" . $text;
+  $text = "<div><i>{$viewing} ({$creator}) {$editlink}</i></div><h3>{$chapter}</h3>" . $text;
   $text .= '<hr><div style="float: left; width: 300px;">' . $character_links . '</div>'
   . '<div style="margin-left: 320px;" >' . $set_links . '</div>'
     . '<div style="margin-left: 320px;" >' . $author_links . '</div>';
@@ -351,7 +570,62 @@ function write_file() {
 
 }
 
+function storytrail_preprocess_page(&$variables) {
+  //print '<pre>';
+  //$node = $variables['page'];
+//print_r($node);
+  //print '</pre>';
+//drupal_set_message($variables);
+}
 
+
+/**
+ * Implements hook_form_alter().
+ */
+function storytrail_form_user_profile_form_alter(&$form, $form_state) {
+  global $user;
+  $names = '';
+  $author_names = db_select('storytrail_users', 'u')
+  ->fields('u', array('author_names'))
+  ->condition('u.uid', $user->uid, '=')
+  ->execute()
+  ->fetch();
+  //
+  //print_r($author_names);
+  if(!$author_names) {
+    db_insert('storytrail_users')
+    ->fields(array(
+    	'uid' => $user->uid,
+    	'author_names' => ''
+    ))
+    ->execute();
+  }
+  else {
+    $names = $author_names->author_names;
+  }
+
+
+  $form['author_names'] = array(
+    '#type' => 'textfield',
+    '#title' => 'author names',
+    '#default_value' => $names,
+  );
+  $form['#submit'][] = 'storytrail_form_user_profile_form_submit';
+
+}
+
+function storytrail_form_user_profile_form_submit(&$form, $form_state) {
+  global $user;
+
+  if ($form_state['values']['author_names'] != '') {
+    db_update('storytrail_users')
+    ->fields(array(
+      'author_names' => $form_state['values']['author_names']
+    ))
+    ->condition('uid', $user->uid, '=')
+    ->execute();
+  }
+}
 
 /**
 * Implements hook_help().
@@ -548,6 +822,9 @@ function storytrail_simple_form_submit($form, &$form_state) {
   drupal_set_message('<pre>The submitted values in $form_state[\'values\'] <br>' . print_r( $form_state['values'], true) . '</pre>');
 }
 
+
+
+
 /**
  * Implements hook_form_alter().
  */
@@ -557,8 +834,9 @@ function storytrail_form_alter(&$form, $form_state, $form_id) {
     case 'user_login_block':
       ;
     break;
-    case 'storytrail_simple': ; break;
+    case 'user_profile_form': ; break;
   }
+    //print $form_id;
 }
 
 /**

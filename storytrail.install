@@ -10,23 +10,30 @@
  */
 function storytrail_schema() {
 
-  $schema['storytrail'] = array(
+  $schema['storytrail_users'] = array(
     // Table description.
-    'description' => t('Description of what the table is used for.'),
-      'fields' => array(
+    'description' => t('Drupal user storytrail user data.'),
+    'fields' => array(
       // Field definition.
-      'field1' => array(
+      'uid' => array(
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
-        'description' => t('Description of what this field is used for.'),
+        'description' => t('Drupal User uid.'),
+      ),
+      // Field definition.
+      'author_names' => array(
+        'type' => 'varchar',
+        'length' => 200,
+        'not null' => FALSE,
+        'description' => t('Names the user writes under.'),
       ),
     ),
     // Index declarations.
-    'primary key' => array('field1'),
+    'primary key' => array('uid'),
   );
-  return $schema; 
+  return $schema;
 }
 
 /**
