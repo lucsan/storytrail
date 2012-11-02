@@ -211,8 +211,16 @@ function storytrail_create_scene_form() {
     return $form;
 }
 
+function storytrail_create_scene_form_validate($form, &$form_state) {
+  $values = $form_state['values'];
+  if ($values['name'] == '') {
+    form_set_error('name', 'Your scene must have a unique title.');
+  }
+}
+
 function storytrail_create_scene_form_submit($form, &$form_state) {
   global $user;
+
   $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
   $values = $form_state['values'];
   $text = $values['text'];
@@ -221,7 +229,7 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
 
   if ($values['op'] == 'Delete') {
     unlink($path . '/' . $file_name);
-    drupal_set_message("'File Deleted' {$user->name} your scene <i>'{$values['name']}'</i> has been removed from your scene list.");
+    drupal_set_message("'File Deleted' {$user->name} your scene <i>'{$values['name']}'</i> has been removed from your scene stack.");
     $form_state['redirect'] = array("storytrail_scene/");
     return;
   }
@@ -249,13 +257,16 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
   $handle = fopen($path . '/' . $file_name, 'w');
   fwrite($handle, $file_data);
   fclose($handle);
-  $act = 'New';
-  if ($old_file_name != ''){ $act = 'Updated'; }
-  if ($old_file_name != $file_name){ $act = 'Renamed'; }
-  drupal_set_message("{$act}: '{$user->name}' your scene <i>'{$values['name']}'</i> has been writen to your scene stack.");
+  $act = 'Created';
+  if ($old_file_name != '.txt'){ $act = 'Updated'; }
+  if ($old_file_name != $file_name && $old_file_name != '.txt'){ $act = 'Renamed'; }
+  drupal_set_message("{$act}: '{$user->name}' your scene <i>'{$values['name']}'</i> has been written to your scene stack.");
+
+  if ($file_name != $old_file_name && $old_file_name != '.txt') {
+    unlink($path . '/' . $old_file_name);
+  }
 
   if ($file_name != $old_file_name) {
-    unlink($path . '/' . $old_file_name);
     $form_state['redirect'] = array("storytrail_scene/{$file_name}");
   }
 }
@@ -279,9 +290,9 @@ function storytrail_edit_scene_form() {
 
     $form['storytrail']['select'] = array(
     '#type' => 'select',
-    '#title' => t('Select the scene you wish to edit.'),
+    '#title' => t(":name Select the scene you wish to edit from your scene stack.", array(':name' => $user->name)),
     '#options' => $options, // The drupal_map_assoc will key the array.
-    '#description' => t("This is a list of scenes you own."),
+    '#description' => t("This is a list of scenes in your stack. You can edit them, but if you did not origionally author them, your changes may not be accepted into the collective stack."),
   );
 
 
@@ -483,7 +494,6 @@ function storytrail_stitch($user, $filepaths) {
   // Now see how many scenes each scene preceededs [pre:].
   $heft = array();
   foreach ($scenes as $filetitle => $data) {
-    //$file = substr($file, 0, strlen($file) - 4);
     if (!isset($scene_order[$filetitle])) {
       $heft[$filetitle] = 0;
     }
@@ -494,7 +504,7 @@ function storytrail_stitch($user, $filepaths) {
   // Sort in accending order (most first).
   arsort($heft);
 
-  // Sort each chatacters scene list into heft order.
+  // Sort each characters scene list into heft order.
   foreach ($characters as $character => $filenames) {
       $temp = array();
     foreach ($filenames as $filename) {
@@ -528,33 +538,39 @@ function storytrail_stitch($user, $filepaths) {
   $the_scene = $scenes[$scene_file];
 
   $character_links = '';
-  foreach ($the_scene['chr'] as $character) {
-    $character_title = ucwords($character);
-    $character_links .= "<h4>Follow {$character_title}</h4>";
-    foreach ($characters[$character] as $file) {
-      if ($file != $scene_file) {
-        $character_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+  if (isset($the_scene['chr'])) {
+    foreach ($the_scene['chr'] as $character) {
+      $character_title = ucwords($character);
+      $character_links .= "<h4>Follow {$character_title}</h4>";
+      foreach ($characters[$character] as $file) {
+        if ($file != $scene_file) {
+          $character_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+        }
       }
     }
   }
 
   $set_links = '';
-  foreach ($the_scene['set'] as $set) {
-    $set_title = ucfirst($set);
-    $set_links .= "<h4>Watch {$set_title}</h4>";
-    foreach ($sets[$set] as $file) {
-      if ($file != $scene_file) {
-        $set_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+  if (isset($the_scene['set'])) {
+    foreach ($the_scene['set'] as $set) {
+      $set_title = ucfirst($set);
+      $set_links .= "<h4>Watch {$set_title}</h4>";
+      foreach ($sets[$set] as $file) {
+        if ($file != $scene_file) {
+          $set_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+        }
       }
     }
   }
 
   $author_links = '';
-  foreach ($the_scene['aut'] as $author) {
-    $author_links .= "<h4>Read more by {$author}</h4>";
-    foreach ($authors[$author] as $file) {
-      if ($file != $scene_file) {
-        $author_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+  if (isset($the_scene['aut'])) {
+    foreach ($the_scene['aut'] as $author) {
+      $author_links .= "<h4>Read more by {$author}</h4>";
+      foreach ($authors[$author] as $file) {
+        if ($file != $scene_file) {
+          $author_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
+        }
       }
     }
   }
