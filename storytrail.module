@@ -447,11 +447,6 @@ function storytrail_stitch($user, $filepaths) {
   $commands_data = array();
   $pieces = array();
 
-  $scenes = array();
-  $authors = array();
-  $characters = array();
-  $sets = array();
-
   // Go through each file and extract the data (text and commands).
   foreach ($filepaths as $filename => $filedata) {
     $filetitle = strtolower(stristr($filename, '.', true));
