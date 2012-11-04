@@ -432,10 +432,6 @@ function storytrail_display() {
       $all_filepaths[$upath]['has_version'] = true;
     }
 
-
-  //print '<pre>';
-  //print_r($all_filepaths);
-  ///print '</pre>';
   $text = storytrail_stitch($user, $all_filepaths);
   return $text;
 }
@@ -485,110 +481,29 @@ function storytrail_stitch($user, $filepaths) {
       if ($subcommand[0] != '') {
         $pieces[$subcommand[0]][$subcommand[1]][$filetitle] = '';
       }
-
-/*
-      // Create the authors list.
-      if ($subcommand[0] == 'aut') {
-        $authors[$subcommand[1]][] = $filetitle;
-      }
-      // Create the characters list.
-      if ($subcommand[0] == 'chr') {
-        $characters[$subcommand[1]][] = $filetitle;
-        //$pieces['chr'][$subcommand[1]][] = $filetitle;
-      }
-      // Create the sets list.
-      if ($subcommand[0] == 'set') {
-        $sets[$subcommand[1]][] = $filetitle;
-
-      }
-      // Create the followed by list.
-      if ($subcommand[0] == 'pre') {
-        $scene_order[$subcommand[1]][] = $filetitle;
-      }
-*/
-
     }
   }
-
 
   $the_scene = $scenes[$scene_file];
-//print "<pre>".print_r($the_scene,true)."</pre>";
-
   $ordered_scenes = storytrail_calculate_scene_order($commands_data, $the_source);
-//print "<pre>".print_r($ordered_scenes,true)."</pre>";
-/*  // Now see how many scenes each scene preceededs [pre:].
-  $heft = array();
-  //print_r($scenes);
-  foreach ($scenes as $filetitle => $data) {
-    if (!isset($scene_order[$filetitle])) {
-      $heft[$filetitle] = 0;
-    }
-    else {
-      $heft[$filetitle] = count($scene_order[$filetitle]);
-    }
-  }
-  // Sort in accending order (most first).
-  arsort($heft);
-*/
 
   foreach ($pieces as $type => $ids) {
-
-  //print "$type<br>";
     foreach ($ids as $id => $scene_list) {
- //print "$id<br>";
     $temp = array();
       foreach ($scene_list as $scene => $nul) {
- //print $scene;
         $temp[$scene] = $ordered_scenes[$scene]['score'];
       }
       asort($temp);
-//print "<pre>".print_r($temp,true)."</pre>";
       $pieces[$type][$id] = $temp;
     }
-
   }
 
-  //print "<pre>".print_r($pieces,true)."</pre>";
-/*
-  // Sort each characters scene list into heft order.
-  foreach ($characters as $character => $filenames) {
-      $temp = array();
-    foreach ($filenames as $filename) {
-      $temp[$filename] = $heft[$filename];
-    }
-    arsort($temp);
-    $characters[$character] = array_keys($temp);
-  }
 
-  // Sort each sets scene list into heft order.
-  foreach ($sets as $set => $files) {
-      $temp = array();
-    foreach ($files as $file) {
-      $temp[$file] = $heft[$file];
-    }
-    arsort($temp);
-    $sets[$set] = array_keys($temp);
-  }
-
-  // Sort each author scene list into heft order.
-  foreach ($authors as $author => $files) {
-      $temp = array();
-    foreach ($files as $file) {
-      $temp[$file] = $heft[$file];
-    }
-    arsort($temp);
-    $authors[$author] = array_keys($temp);
-  }
-
-  array_multisort($scenes, $heft);
-  $the_scene = $scenes[$scene_file];
-*/
   $character_links = '';
   if (isset($the_scene['chr'])) {
     foreach ($the_scene['chr'] as $character) {
       $character_title = ucwords($character);
       $character_links .= "<h4>Follow {$character_title}</h4>";
-      //foreach ($characters[$character] as $file) {
       foreach ($pieces['chr'][$character] as $file => $nul) {
         if ($file != $scene_file) {
           $character_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
@@ -602,7 +517,6 @@ function storytrail_stitch($user, $filepaths) {
     foreach ($the_scene['set'] as $set) {
       $set_title = ucfirst($set);
       $set_links .= "<h4>Watch {$set_title}</h4>";
-      //foreach ($sets[$set] as $file) {
       foreach ($pieces['set'][$set] as $file => $nul) {
         if ($file != $scene_file) {
           $set_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
@@ -615,7 +529,6 @@ function storytrail_stitch($user, $filepaths) {
   if (isset($the_scene['aut'])) {
     foreach ($the_scene['aut'] as $author) {
       $author_links .= "<h4>Read more by {$author}</h4>";
-      //foreach ($authors[$author] as $file) {
       foreach ($pieces['aut'][$author] as $file => $nul) {
         if ($file != $scene_file) {
           $author_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
@@ -663,12 +576,6 @@ function storytrail_calculate_scene_order($commands, $the_source) {
   }
 
   asort($scene_list);
-
-
-/*  print '<pre>';
-    print_r($scene_list);
-  print '</pre>';
-  */
   return $scene_list;
 }
 
