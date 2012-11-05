@@ -290,23 +290,18 @@ function storytrail_edit_scene_form() {
     $title = ucfirst(stristr($file_name, '.', true));
     $options[$file_name] = $title;
   }
-  //print_r($user_scenes);
-
 
     $form['storytrail']['select'] = array(
     '#type' => 'select',
     '#title' => t(":name Select the scene you wish to edit from your scene stack.", array(':name' => $user->name)),
-    '#options' => $options, // The drupal_map_assoc will key the array.
-    '#description' => t("This is a list of scenes in your stack. You can edit them, but if you did not origionally author them, your changes may not be accepted into the collective stack."),
+    '#options' => $options,
+    '#description' => t("This is a list of scenes in your stack. You can edit them, but if you did not originally author them, your changes may not be accepted into the collective stack."),
   );
 
-
-
-  // Submit example.
   $form['storytrail']['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Submit', // The name on the button.
-    '#description' => t("Submit this."), // Displays nothing.
+    '#value' => 'Submit',
+    '#description' => t("Submit this."),
   );
 
     return $form;
@@ -320,38 +315,12 @@ function storytrail_edit_scene_form_submit($form, &$form_state) {
   $form_state['redirect'] = array("storytrail_scene/{$file}");
 }
 
-
-
 function storytrail_config() {
   return drupal_get_form('storytrail_config_form');
-
 }
 
 function storytrail_config_form() {
   global $user;
-
-  $pass = sha1('password');
-  $usr = sha1('lucsan');
-  $passusr = sha1($pass . $usr);
-  print "pass: password " . $pass;
-  print "User: lucsan " . $usr;
-  print "passusr " . $passusr;
-  print "passusr md5 " . md5($passusr);
-  print "<br>";
-
-//C:\Windows\SysWOW64\cmd.exe /c ""C:\Program Files (x86)\Git\bin\sh.exe" --login -i"
-
-  //chdir('sites');
-  print '<pre>';
-  //print shell_exec("dir");
-  //print shell_exec("cd C:\Program Files (x86)\Git\bin\ && dir");
-  //print shell_exec("C:\Windows\SysWOW64\cmd.exe /c C:\progfx86\Git\bin\sh.exe --login -i 2>&1");
-  //print shell_exec("C:\Program Files (x86)\Git\bin\sh.exe 2>&1");
-  //print shell_exec("git status 2>&1");
-  //print shell_exec("'C:\Program Files (x86)\Git\bin\sh.exe --login -i' 2>&1");
-  //print shell_exec("'C:\Program Files (x86)\Git\bin\sh.exe' --login -i 2>&1");
-  print '</pre>';
-
 
   $form['#method'] = 'post';
 
@@ -362,7 +331,7 @@ function storytrail_config_form() {
     '#default_value' => t(''),
   );
 
-  // Submit example.
+
   $form['storytrail']['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit', // The name on the button.
