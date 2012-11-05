@@ -3,15 +3,15 @@
 /**
  * @file
  * Reads Collabatorium story files and creates the story trail.
- *
- */
 
+ * TODO: allow users to read authors unmerged scenes.
+ * TODO: allow more than one project.
+ */
 
 /**
  * a file to keep all the database call function in as a way of keeping code organized
  */
 include_once('storytrail.data.inc');
-
 
 
 /**
@@ -32,8 +32,6 @@ function storytrail_menu() {
 
   $items['storytrail_display'] = array(
     'title' => 'Read - Tails from the river of life.',
-    //'title callback' => 'storytrail_title_change', // If TRUE you must declare a title argument function.
-    //'title arguments' => array(),
     'description' => 'Create a story as you read it, tails from the river of life, a story made by you.',
     'page callback' => 'storytrail_display',
     'page arguments' => array(),
@@ -41,7 +39,6 @@ function storytrail_menu() {
     'type' => MENU_NORMAL_ITEM,
     'weight' => 4,
   );
-
 
   $items['configstorytrail'] = array(
     'title' => 'Config Storytrail',
@@ -238,8 +235,6 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
     return;
   }
 
-
-
   $meta_data['aut'] = $values['aut'];
   $meta_data['edt'] = $values['edt'];
   $meta_data['chr'] = $values['chr'];
@@ -273,6 +268,12 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
   if ($file_name != $old_file_name) {
     $form_state['redirect'] = array("storytrail_scene/{$file_name}");
   }
+  else {
+    $file = strtolower($values['name']);
+    $form_state['redirect'] = array("storytrail_display/{$file}");
+  }
+
+
 }
 
 
@@ -452,7 +453,7 @@ function storytrail_stitch($user, $filepaths) {
     $filetitle = strtolower(stristr($filename, '.', true));
     $data = file_get_contents($filedata['file']);
 
-    $text = stristr($data, '[', true);
+    $text = check_plain(stristr($data, '[', true));
     $text = trim($text);
     $text = str_replace(array("\r\n", "\n", "\r"), "</br>", $text);
     $scenes[$filetitle]['text'] = $text;
@@ -460,7 +461,7 @@ function storytrail_stitch($user, $filepaths) {
     $scenes[$filetitle]['filename'] = $filename;
     $scenes[$filetitle]['has_version'] = $filedata['has_version'];
 
-    $datum = stristr($data, '[', false);
+    $datum = check_plain(stristr($data, '[', false));
     $commands = explode( '[', $datum);
 
     foreach ($commands as $command) {
