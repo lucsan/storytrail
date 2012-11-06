@@ -568,7 +568,9 @@ function storytrail_calculate_scene_order($commands, $the_source) {
 
   foreach ($scene_list as $scene => $data) {
     foreach ($data['post'] as $post) {
-      $scene_list[$post]['score'] -= 1;
+      if (isset($scene_list[$post])) {
+        $scene_list[$post]['score'] -= 1;
+      }
     }
   }
 
