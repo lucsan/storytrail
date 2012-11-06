@@ -4,8 +4,9 @@
  * @file
  * Reads Collabatorium story files and creates the story trail.
 
- * TODO: allow users to read authors unmerged scenes.
+ * TODO: allow users to read authors (users) unmerged scenes.
  * TODO: allow more than one project.
+ * TODO: scene copyright.
  */
 
 /**
@@ -108,8 +109,13 @@ function storytrail_create_scene_form() {
   global $user;
   $text = '';
   $scene = '';
-  $meta_texts = array('aut' => '', 'edt' =>'', 'chr' => '', 'set' => '', 'pre' => '');
+  $meta_texts = array('aut' => '', 'edt' =>'', 'chr' => '', 'set' => '', 'pre' => '', 'crt' => '');
   $path = getcwd() . '/git/' . $user->name . '/storyriver/Scenes';
+
+  $form['storytrail']['message1'] = array(
+    '#markup' => t("<p>Owner :username</p>", array(':username' => $user->name)),
+  );
+
   if ($file_name = arg(1)) {
     $file = file_get_contents($path . '/' . $file_name);
     $scene = strtolower(stristr($file_name, '.', true));
@@ -140,11 +146,13 @@ function storytrail_create_scene_form() {
     '#field_suffix' => t("Delete this scene from your scenes list."),
   );
 
+  $form['storytrail']['message2'] = array(
+    '#markup' => t(" Delete this scene from your stack."),
+  );
+
   }
 
-  $form['storytrail']['message1'] = array(
 
-  );
 
   $form['#method'] = 'post';
 
@@ -165,6 +173,13 @@ function storytrail_create_scene_form() {
     '#title' => t("Author's name(s)"),
     '#description' => t("Colon separated list of Authors (eg: Barry Wong; lucsan)"),
     '#default_value' => t($meta_texts['aut']),
+  );
+
+  $form['storytrail']['crt'] = array(
+    '#type' => 'textfield',
+    '#title' => t("Copyright holders"),
+    '#description' => t("Colon separated list of Copyright holders names with dates, dates first. (eg: 2012 Barry wong; 2010 Lucsan)"),
+    '#default_value' => t($meta_texts['crt']),
   );
 
   $form['storytrail']['edt'] = array(
@@ -240,6 +255,7 @@ function storytrail_create_scene_form_submit($form, &$form_state) {
   $meta_data['chr'] = $values['chr'];
   $meta_data['set'] = $values['set'];
   $meta_data['pre'] = $values['pre'];
+  $meta_data['crt'] = $values['crt'];
 
   $meta_text = '';
   foreach ($meta_data as $key => $list) {
@@ -378,7 +394,6 @@ function storytrail_display() {
     $user_filepaths = array_flip(storytrail_scandir($user_path));
   }
   else { //uid == 0
-
     $user->name = 'collective';
   }
 
@@ -474,6 +489,7 @@ function storytrail_stitch($user, $filepaths) {
           $character_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
         }
       }
+      $character_links = substr($character_links, 0, strlen($character_links) - 5);
     }
   }
 
@@ -487,19 +503,33 @@ function storytrail_stitch($user, $filepaths) {
           $set_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
         }
       }
+      $set_links = substr($set_links, 0, strlen($set_links) - 5);
     }
   }
 
   $author_links = '';
   if (isset($the_scene['aut'])) {
     foreach ($the_scene['aut'] as $author) {
-      $author_links .= "<h4>Read more by {$author}</h4>";
+      $author_title = ucwords($author);
+      $author_links .= "<h4>Read more by {$author_title}</h4>";
       foreach ($pieces['aut'][$author] as $file => $nul) {
         if ($file != $scene_file) {
           $author_links .= l(ucfirst($file), 'storytrail_display/' . $file ) . '</br>';
         }
       }
+      $author_links = substr($author_links, 0, strlen($author_links) - 5);
     }
+  }
+
+  $copyrights = '';
+  if (isset($the_scene['crt']) && count($the_scene['crt']) > 0) {
+    $copyrights .= "</br><span style=\"font-size: smaller;\" ><i>";
+    foreach ($the_scene['crt'] as $copy) {
+      $copy = ucwords($copy);
+      $copyrights .= "Copyright &#169; {$copy}, ";
+    }
+    $copyrights =substr($copyrights, 0, strlen($copyrights) - 2);
+    $copyrights .= "</i></span>";
   }
 
   $text = $the_scene['text'];
@@ -508,12 +538,14 @@ function storytrail_stitch($user, $filepaths) {
   $creator = $the_scene['source'];
   $filename = $the_scene['filename'];
   $editlink = '';
-  if ($the_scene['has_version']) $editlink = "<a href=\"../storytrail_scene/{$filename}\" >Edit</a>";
+  if ($the_scene['has_version']) $editlink = l('Edit', 'storytrail_scene/' . $filename);
+  //"<a href=\"../storytrail_scene/{$filename}\" >Edit</a>";
 
   $text = "<div><i>{$viewing} ({$creator}) {$editlink}</i></div><h3>{$chapter}</h3>" . $text;
-  $text .= '<hr><div style="float: left; width: 300px;">' . $character_links . '</div>'
-  . '<div style="margin-left: 320px;" >' . $set_links . '</div>'
-    . '<div style="margin-left: 320px;" >' . $author_links . '</div>';
+  $text .= "<br>{$copyrights}";
+  $text .= '<hr><div style="float: left; width: 210px;">' . $character_links . '</div>'
+  . '<div style="float: left; margin-left: 20px; width: 210px;" >' . $set_links . '</div>'
+    . '<div style="float: left; margin-left: 20px; width : 210px;" >' . $author_links . '</div>';
   return $text;
 
 }
